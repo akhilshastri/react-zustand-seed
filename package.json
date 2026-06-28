@@ -18,9 +18,11 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "immer": "^11.1.8",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@babel/core": "^8.0.1",
