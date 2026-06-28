@@ -1,0 +1,13 @@
+# Dependencies & build artifacts
+node_modules
+dist
+dev-dist
+coverage
+*.tsbuildinfo
+package-lock.json
+
+# User scratch — not Prettier-managed
+.ignored
+
+# Planning docs: hand-formatted reference material, not app code
+plan

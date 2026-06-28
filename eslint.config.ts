@@ -1,0 +1,23 @@
+import js from '@eslint/js'
+import globals from 'globals'
+import reactHooks from 'eslint-plugin-react-hooks'
+import tseslint from 'typescript-eslint'
+import prettier from 'eslint-config-prettier'
+
+// Flat config (ESLint 10). typescript-eslint + react-hooks (incl. React Compiler rules).
+// NOTE: eslint-plugin-jsx-a11y is intentionally deferred to Phase 1 — its 6.10.2 release does
+// not yet declare ESLint 10 support, and an empty shell has no a11y surface. Add it back with
+// the UI layer. The §3 import-boundary rule is also added in Phase 1, once features exist.
+export default tseslint.config(
+  { ignores: ['dist', 'dev-dist', 'coverage', 'node_modules'] },
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [js.configs.recommended, ...tseslint.configs.recommended],
+    languageOptions: {
+      ecmaVersion: 2023,
+      globals: { ...globals.browser },
+    },
+  },
+  reactHooks.configs.flat['recommended-latest'],
+  prettier,
+)
