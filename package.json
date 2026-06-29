@@ -46,6 +46,7 @@
     "husky": "^9.1.7",
     "jiti": "^2.7.0",
     "lint-staged": "^17.0.8",
+    "msw": "^2.14.6",
     "prettier": "^3.9.1",
     "prettier-plugin-tailwindcss": "^0.8.0",
     "tailwindcss": "^4.3.1",
@@ -60,6 +61,11 @@
     ],
     "*.{js,mjs,cjs,json,css,md,html}": [
       "prettier --write"
+    ]
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
     ]
   }
 }
