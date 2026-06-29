@@ -552,11 +552,25 @@ collected with `import.meta.glob`, so a new file is picked up with zero edits to
   buttons were replaced by **row-click-to-edit + checkbox bulk-delete**, which keeps the columns
   module-level (stable identity, no table resets).
 
-### Phase 4 — Scaffolder
-- Plop generators + templates for store/domain/query/feature/mock/component/route;
-  `npm run gen` script.
+### Phase 4 — Scaffolder · ✅ DONE (2026-06-29)
+- Plop generators + templates for the reviewed three — **domain, feature, mock** (§5, not the
+  stale 7-item list above); `npm run gen` script.
 - **Done when:** `npm run gen feature foo` produces a compiling, lint-clean slice (incl. an
-  MSW handler) wired into the app.
+  MSW handler) wired into the app. — **verified green.**
+- **Outcome:** `npm run gen feature scaffoldtest` generated the slice (types, query keys, list
+  query, store, page, index) + an MSW handler; `npm run typecheck` and `npm run lint` passed on
+  the generated output with the handler **auto-wired** via the handlers `import.meta.glob` (zero
+  edits to a shared file). `domain` and `mock` generators likewise. `npm run gen <gen> <name>`
+  passes the bypass name through npm. Throwaway test output was removed (the scaffolder, not a
+  sample slice, is the deliverable).
+- **Deviations (documented):** (1) the plopfile is **ESM JS at the repo root** (`plopfile.mjs`),
+  not `scripts/plopfile.ts` — plop loads ESM natively (a `.ts` plopfile needs a separate loader),
+  and root is plop's conventional location; the *generated* code is still TypeScript. (2) **No**
+  `store`/`query`/`component`/`route` generators (folded into `feature` / owned by shadcn + the
+  router, per §5). (3) Route auto-discovery is impractical for a guarded data-router (explicit
+  layout/guard nesting), so a generated feature's route is a **printed next-step**, while its MSW
+  handler genuinely auto-wires. The `domain` entity is a single `{{name}}.ts` (schema + type),
+  matching the existing `user.ts`/`auth.ts` convention rather than the §5 types/schema split.
 
 ### Phase 5 — Testing harness
 - **Vitest + RTL** use MSW `setupServer` (Node — no service worker).
