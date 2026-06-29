@@ -4,8 +4,9 @@ Repo guide for AI agents and humans. Keep it short and current. The **full plan 
 rationale live in [`plan/01-enterprise-app-plan.md`](plan/01-enterprise-app-plan.md)** —
 this file is the quick operating manual.
 
-> **Status:** greenfield. The app is **not built yet**; the plan is approved-in-progress.
-> Build it in the phase order from the plan (§7).
+> **Status:** Phases 1–7 complete — a working reference app. Auth + RBAC, the users `DataGrid`
+> feature, the Plop scaffolder, Vitest + Playwright tests, and the installable PWA shell are all
+> wired and verified. The plan (§7) holds the phase-by-phase history.
 
 ---
 
@@ -24,17 +25,17 @@ react-virtual 3.14 · react-hook-form 7.80 + zod 4 · shadcn/ui + tailwindcss v4
 babel-plugin-react-compiler 1.0 (via @rolldown/plugin-babel) · msw 2.14 · vitest 4 +
 @testing-library/react 16 · @playwright/test 1.61 · vite-plugin-pwa 1.3.
 
-## Commands (planned npm scripts)
+## Commands
 
 | Script                                  | Does                                            |
 | --------------------------------------- | ----------------------------------------------- |
 | `npm run dev`                           | Vite dev server (MSW mock backend active)       |
 | `npm run build`                         | Type-check + build to `dist/` (PWA SW emitted)  |
 | `npm run preview`                       | Serve the built `dist/` (test PWA/offline here) |
-| `npm run lint` / `format` / `typecheck` | ESLint (flat) / Prettier / `tsc --noEmit`       |
-| `npm test` / `test:watch`               | Vitest + RTL + MSW                              |
-| `npm run e2e`                           | Playwright                                      |
-| `npm run gen <type>`                    | Plop scaffolder (see "Adding things")           |
+| `npm run lint` / `format` / `typecheck` | ESLint (flat) / Prettier / `tsc -b`             |
+| `npm test` / `test:watch`               | Vitest + RTL + MSW (`setupServer`)              |
+| `npm run e2e`                           | Playwright (login → users grid)                 |
+| `npm run gen <generator> <name>`        | Plop scaffolder (see "Adding things")           |
 
 ---
 
@@ -49,17 +50,19 @@ babel-plugin-react-compiler 1.0 (via @rolldown/plugin-babel) · msw 2.14 · vite
    (Plan §4.9.)
 3. **Dependency direction:** `app → features → shared → domain`. `domain` imports nothing.
    Features import other features only via their public `index.ts` — never their internals.
-   `shared` never imports from `features`. (Enforced by an ESLint import-boundary rule.)
+   `shared` never imports from `features`. (Currently a **convention** — the import-boundary lint
+   rule is not yet enabled; reviewers uphold it. Route paths live in `shared/config/paths.ts` so
+   features navigate without importing `app/`.)
 4. **MSW is the backend.** All API behavior lives in `src/mocks/handlers` + `src/mocks/db.ts`,
    shared by dev (browser Service Worker) and Vitest (`setupServer`, Node). Playwright uses the
    **browser** worker, not `setupServer`. Handlers **enforce authz (return `403`)** — don't let
    the mock be a yes-man. Add a handler when you add an endpoint; keep handlers identical.
-5. **React Compiler is _intended_ on — write plain React.** Do **not** hand-add `useMemo` /
-   `useCallback` / `React.memo`; the compiler does memoization. Obey
-   `eslint-plugin-react-hooks` (rules-of-hooks + compiler rules). **Caveat:** the compiler is
-   only _confirmed active_ once Phase 1 passes; if Phase 1 takes the compiler-OFF escape hatch
-   (§4.7), this rule is suspended until it's back on. Don't write perf-critical code before
-   Phase 3 anyway.
+5. **React Compiler is on — write plain React.** Do **not** hand-add `useMemo` / `useCallback` /
+   `React.memo`; the compiler does memoization. Obey `eslint-plugin-react-hooks` (rules-of-hooks +
+   compiler rules). Confirmed active (transformed output uses `_c(n)`). **One exception:**
+   `DataGrid` uses TanStack Table's `useReactTable`, which the compiler can't analyse, so it safely
+   bails there (Table memoizes itself) — flagged by `react-hooks/incompatible-library` and
+   suppressed with an explanatory disable.
 6. **Forms = RHF + Zod via `use-zod-form`.** Schemas live in `src/domain/**`, reused by the
    form and (optionally) response parsing. Don't duplicate validation.
 7. **Routing:** import from **`react-router`** (NOT `react-router-dom`). Navigate via typed
@@ -89,7 +92,7 @@ babel-plugin-react-compiler 1.0 (via @rolldown/plugin-babel) · msw 2.14 · vite
 ```
 src/app/        composition root: providers, router (+guards), layouts, error, pwa, bindings.ts
 src/domain/     framework-agnostic models + Zod schemas (auth, user, rbac)
-src/features/   vertical slices (auth, users): api/ components/ store/ hooks/ types/ index.ts
+src/features/   vertical slices (auth, users, home, admin): api/ components/ store/ hooks/ types/
 src/shared/     api (http-client, query-client), store (create-store factory),
                 ui (shadcn + data-grid), forms, config, lib, hooks
 src/mocks/      MSW — handlers, db fixtures, browser + server setup  ← the "backend"
@@ -98,11 +101,14 @@ src/test/       Vitest setup + provider-aware render()
 
 ## Adding things (use Plop — 3 core generators)
 
-- **Feature slice:** `npm run gen feature <name>` → full slice (api/store/components/types) +
-  an MSW handler. Routes & handlers are auto-discovered via `import.meta.glob` (no central-file
-  edits, no string-injection codegen).
-- **Domain entity:** `npm run gen domain <name>` → `*.types.ts` + `*.schema.ts` + `index.ts`.
-- **MSW handler:** `npm run gen mock <resource>` → handler + db fixture (enforce authz/`403`).
+- **Feature slice:** `npm run gen feature <name>` → full slice (types/api/store/components) + an
+  MSW handler. The **handler auto-registers** via `import.meta.glob` (no central-file edit, no
+  string-injection); the **route is one manual step** — the generator prints the line to add to
+  `app/router/routes.tsx` (the guarded data-router needs explicit placement).
+- **Domain entity:** `npm run gen domain <name>` → a single `<name>.ts` (Zod schema + inferred
+  type) + `index.ts`, matching the existing `user.ts` / `auth.ts` style.
+- **MSW handler:** `npm run gen mock <resource>` → a handler (enforce authz/`403` for protected
+  resources).
 - **Cross-store reaction:** add a `store.subscribe` block in `app/bindings.ts` calling the
   target store/`queryClient` directly. Do **not** wire store-to-store or add an event bus.
 - **Component / route:** use the shadcn CLI / add a route module — not a generator.

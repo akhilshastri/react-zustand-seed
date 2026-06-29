@@ -1,0 +1,23 @@
+import { createStore, type StoreInitializer } from '@/shared/store'
+
+interface {{pascalCase name}}UiState {
+  selectedId: string | null
+  setSelectedId: (id: string | null) => void
+}
+
+const initializer: StoreInitializer<{{pascalCase name}}UiState> = (set) => ({
+  selectedId: null,
+  setSelectedId: (id) =>
+    set(
+      (s) => {
+        s.selectedId = id
+      },
+      false,
+      '{{kebabCase name}}/setSelectedId',
+    ),
+})
+
+export const use{{pascalCase name}}Store = createStore<{{pascalCase name}}UiState>(
+  '{{kebabCase name}}',
+  initializer,
+)

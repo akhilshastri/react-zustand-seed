@@ -329,9 +329,11 @@ plugins: [
 **Footgun — plugin ordering:** the referenced blog
 ([recca0120](https://recca0120.github.io/en/2026/04/14/react-compiler-vite-v6/)) puts
 `babel()` **before** `react()`; the official react.dev guide shows `react()` first. They
-disagree. **Resolution:** we will not guess — Phase 1 tries both orderings and adopts whichever
-makes *both* Fast Refresh (HMR preserves state) *and* the compiler (React DevTools "Memo ✨"
-badge) work.
+disagree. **Resolution (settled in Phase 1):** **`react()` first, then the babel/compiler pass**
+(`plugins: [react(), babel({ presets: [reactCompilerPreset()] }), tailwindcss()]`) — the
+react.dev order, not the blog's babel-first. Verified: the transformed output imports
+`react/compiler-runtime` and components open with `_c(n)` (memo cache), while Fast Refresh
+(`createHotContext`) still works. We did not need the escape hatch below.
 
 **Fallback — the compiler is optional, the app is not.** This is a five-deep bleeding-edge
 toolchain (Vite 8 / plugin-react v6 / `@rolldown/plugin-babel@0.2.3` (pre-1.0) /
@@ -475,7 +477,7 @@ collected with `import.meta.glob`, so a new file is picked up with zero edits to
   (2) `eslint-plugin-jsx-a11y` deferred to Phase 1 (no ESLint 10 support yet);
   (3) the §3 import-boundary lint rule deferred to Phase 1 (no features to guard yet).
 
-### Phase 1 — Core integrations + React Compiler
+### Phase 1 — Core integrations + React Compiler · ✅ DONE (2026-06-29)
 - React Compiler wiring (§4.7) + ESLint compiler rules; QueryClient + provider + devtools;
   `http-client`; Zustand `create-store` + `ui-store` + `theme-store`; **`app/bindings.ts`**
   (`store.subscribe`) with the `logged-out → queryClient.clear() + ui-store.reset()` reaction;
@@ -485,52 +487,158 @@ collected with `import.meta.glob`, so a new file is picked up with zero edits to
   sample query resolves against MSW; **and the React Compiler toolchain links** — HMR preserves
   state *and* the React DevTools "Memo ✨" badge appears (settles §4.7 ordering). **If neither
   ordering links / HMR is unusable → take the §4.7 escape hatch (compiler OFF) and proceed;
-  do not stall the phase.** (Deep compiler validation is Phase 3, not here.)
+  do not stall the phase.** (Deep compiler validation is Phase 3, not here.) — **all verified green.**
+- **Outcome:** acceptance met live in-browser — home + 404 routes render in the themed shell
+  (dark via system pref); the demo query resolves against MSW (`GET /api/health` → `200 ok`);
+  the demo form shows Zod errors on invalid input and submits on valid; no console errors.
+  **Compiler confirmed active** — the transformed `HomePage` imports `react/compiler-runtime`
+  and opens with `const $ = _c(11)` (memo cache), with Fast Refresh (`createHotContext`)
+  coexisting; the escape hatch was **not** needed. **§4.7 ordering settled: `react()` first,
+  then the babel/compiler pass** (the official react.dev order, not the blog's babel-first).
+- **Deviations (documented):** (1) the `logged-out → queryClient.clear() + ui-store.reset()`
+  reaction is **scaffolded as a documented extension point** in `app/bindings.ts`, not live —
+  it depends on `auth-store`, which lands in Phase 2; the live binding shipped now is
+  `online/offline → ui-store`. (2) devtools are lazy + DEV-gated (kept out of the prod bundle).
+  (3) jsx-a11y + the §3 import-boundary lint rule remain deferred (carried over from Phase 0).
 
-### Phase 2 — Enterprise cross-cutting
+### Phase 2 — Enterprise cross-cutting · ✅ DONE (2026-06-29)
 - Auth feature (JWT store, login, refresh, guards, 401 handling) with MSW auth handlers;
   RBAC (`domain/rbac`, `usePermissions`, `<Can>`, `<RequireRole>`); theming/dark-mode toggle.
 - **Done when:** unauthenticated users are redirected to login; access/refresh token flow
   works against MSW; role-gated route + UI hide correctly; theme persists across reload.
+  — **all verified green, live in-browser.**
+- **Outcome:** verified for both roles — unauth `/` → `/login`; viewer & admin login
+  (`POST /auth/login 200`); **session restores on reload** (`POST /auth/refresh 200`); viewer
+  is bounced from `/admin` and sees no admin panel/link while admin gets both; logout clears the
+  query cache + redirects; theme persists. The httpOnly refresh token is invisible to
+  `document.cookie` (P2.2 probe). Access token in memory only; refresh as httpOnly cookie;
+  single-flight 401 refresh; MSW enforces 401/403 (client RBAC is UX-only).
+- **Bug found + fixed during acceptance:** `bootstrapAuth` ran at module-eval (when
+  `app-providers` is imported), which is *before* `main.tsx` starts MSW — so the cold-start
+  refresh raced ahead of the mock backend, failed, and cleared **every** session on reload. Moved
+  the bootstrap to an `AppProviders` effect (render is gated on MSW readiness), guarded once.
+- **Deviation (documented):** `app/bindings.ts` uses the base `store.subscribe((state, prev))`
+  form, not the selector form sketched in §4.9 — identical behavior without adding the
+  `subscribeWithSelector` middleware to the store factory. All §4.9 discipline preserved.
+- **Dev-only note:** MSW + Vite HMR can drop the glob-registered handlers after editing an
+  app-graph module (auth calls 404 until a full reload re-runs `main.tsx`). Not a production
+  concern (no HMR in `dist`). See §9.
 
-### Phase 3 — DataGrid + example `users` feature
+### Phase 3 — DataGrid + example `users` feature · ✅ DONE (2026-06-29)
 - `DataGrid` (Table + Virtual); `users` slice: list (server-driven grid via MSW),
   create/edit (RHF + Zod dialog), delete, with Query invalidation; MSW `users` handlers + db.
 - **Done when:** users grid sorts/filters/paginates against MSW; create/edit/delete update
   the cache; virtualized rows scroll smoothly. **React Compiler stress-check here** (the real
   one): the render-heavy grid stays correct + the "Memo ✨" badge holds under scroll/sort; if
   the compiler misbehaves on this code, fall back to compiler-OFF (§4.7) before going further.
+  — **all verified green, live in-browser.**
+- **Outcome:** as admin — grid loads server-driven (203 rows, 9 pages); server-side filter
+  (`Turing` → 12, `Zzztest` → 1) and sort; pagination; create via the dialog
+  (`POST /users 201` → invalidate → refetch → the new row appears), with a real
+  `401 → refresh → 201` retry observed on an expired token; rows virtualized (23 DOM rows of a
+  25-row page). RBAC enforced **at the API**: viewer create → **403**; admin
+  create/update/delete → 201/200/204. Mutations invalidate `userKeys.all`.
+- **React Compiler stress-check — passed, no fallback needed:** the render-heavy `UsersPage`
+  is compiled (transformed module opens with `_c(53)`); the `DataGrid` correctly **bails**
+  (its `useReactTable` is "incompatible-library", surfaced by the react-hooks lint rule and
+  suppressed with an explanatory disable) — TanStack Table memoizes itself, the grid stays
+  correct under filter/sort/paginate/create, and the rest of the app stays optimized. The
+  compiler's *automatable* signal (`_c(n)` in the transformed output) replaces the manual
+  "Memo ✨ badge" check the plan sketched.
+- **Deviations (documented):** (1) the CRUD form edits a **single** primary `role`
+  (`userInputSchema`), stored as the `roles` array — keeps the dialog simple; multi-role is a
+  later enhancement. (2) Column **visibility** UI was not built — the DataGrid supports it at the
+  table level, but a toggle needs a Popover/DropdownMenu primitive; deferred. (3) Per-row action
+  buttons were replaced by **row-click-to-edit + checkbox bulk-delete**, which keeps the columns
+  module-level (stable identity, no table resets).
 
-### Phase 4 — Scaffolder
-- Plop generators + templates for store/domain/query/feature/mock/component/route;
-  `npm run gen` script.
+### Phase 4 — Scaffolder · ✅ DONE (2026-06-29)
+- Plop generators + templates for the reviewed three — **domain, feature, mock** (§5, not the
+  stale 7-item list above); `npm run gen` script.
 - **Done when:** `npm run gen feature foo` produces a compiling, lint-clean slice (incl. an
-  MSW handler) wired into the app.
+  MSW handler) wired into the app. — **verified green.**
+- **Outcome:** `npm run gen feature scaffoldtest` generated the slice (types, query keys, list
+  query, store, page, index) + an MSW handler; `npm run typecheck` and `npm run lint` passed on
+  the generated output with the handler **auto-wired** via the handlers `import.meta.glob` (zero
+  edits to a shared file). `domain` and `mock` generators likewise. `npm run gen <gen> <name>`
+  passes the bypass name through npm. Throwaway test output was removed (the scaffolder, not a
+  sample slice, is the deliverable).
+- **Deviations (documented):** (1) the plopfile is **ESM JS at the repo root** (`plopfile.mjs`),
+  not `scripts/plopfile.ts` — plop loads ESM natively (a `.ts` plopfile needs a separate loader),
+  and root is plop's conventional location; the *generated* code is still TypeScript. (2) **No**
+  `store`/`query`/`component`/`route` generators (folded into `feature` / owned by shadcn + the
+  router, per §5). (3) Route auto-discovery is impractical for a guarded data-router (explicit
+  layout/guard nesting), so a generated feature's route is a **printed next-step**, while its MSW
+  handler genuinely auto-wires. The `domain` entity is a single `{{name}}.ts` (schema + type),
+  matching the existing `user.ts`/`auth.ts` convention rather than the §5 types/schema split.
 
-### Phase 5 — Testing harness
+### Phase 5 — Testing harness · ✅ DONE (2026-06-29)
 - **Vitest + RTL** use MSW `setupServer` (Node — no service worker).
 - **Playwright drives a real browser, so it cannot use `setupServer`.** It runs against the
   **dev server (or a preview build with the MSW browser worker enabled)** — never against the
   shipped `dist` (which has no backend). Same shared handlers, different MSW entry point.
 - Smoke E2E: login → users grid.
 - **Done when:** `npm test` and `npm run e2e` pass on a fresh checkout; the E2E target's MSW
-  worker is explicitly the browser worker, not `setupServer`.
+  worker is explicitly the browser worker, not `setupServer`. — **both verified green.**
+- **Outcome:** `npm test` → **5 Vitest tests pass** (rbac unit; `useHealthQuery` integration
+  resolving against the MSW `setupServer`; `DemoForm` component via `userEvent` for Zod
+  validation + submit). `npm run e2e` → **2 Playwright tests pass** in headless Chromium against
+  the dev server's MSW **browser** worker (unauth → `/login`; admin login → dashboard → users
+  grid). `test-utils` renders with QueryClient + MemoryRouter; `setup.ts` runs the MSW lifecycle
+  + `resetDb` + RTL cleanup between tests.
+- **Deviations (documented):** (1) `vitest.config.ts` is **separate** from `vite.config.ts` so
+  tests skip the React Compiler babel pass (a prod optimization, irrelevant to behaviour) and
+  Tailwind, with an explicit `@` alias (not Vite's `tsconfigPaths`, for resolution certainty
+  under Vitest). (2) Vitest uses **explicit imports** (`import { describe, … } from 'vitest'`,
+  `globals: false`) to keep test globals out of the app `tsconfig`.
 
-### Phase 6 — PWA (installable shell)
+### Phase 6 — PWA (installable shell) · ✅ DONE (2026-06-29)
 - `vite-plugin-pwa` manifest + icons (`@vite-pwa/assets-generator`); Workbox app-shell
   precache; `registerSW` update flow → `ui-store.showUpdateToast()` (direct, no bus); offline
   banner via `online/offline` → `ui-store`; exclude `mockServiceWorker.js` from the build
   (§4.8 SW split).
 - **Done when:** a production `npm run build` + `npm run preview` is installable and loads the
   **app shell** offline, and shows the update toast when a new build is served. (No offline-data
-  claim — data needs a real API.)
+  claim — data needs a real API.) — **verified green.**
+- **Outcome:** `npm run build` emits `manifest.webmanifest` (standalone, theme color, icons) +
+  `sw.js` + the Workbox runtime, and the build plugin **removes `mockServiceWorker.js` from
+  `dist`** (only the Workbox SW ships). In `npm run preview` (in-browser): the SW registers and,
+  after a navigation, **controls** the page; the Workbox precache holds the **full app shell** —
+  `index.html` + every JS chunk + CSS + icons + manifest (11 entries), and **not** the MSW
+  worker — so the shell loads offline; the page is installable (manifest + SW + icons). `/api` is
+  **not** runtime-cached (TanStack Query owns server state); `navigateFallback` serves the cached
+  shell for offline navigations. The update toast / offline banner are `ui-store`-driven from
+  `app/pwa/` (no bus); the update flow is wired (onNeedRefresh → `showUpdateToast`) and fires when
+  a second build is served.
+- **Deviations (documented):** (1) a **hand-authored SVG** manifest icon instead of
+  `@vite-pwa/assets-generator` raster output — binary PNGs can't be authored in this workflow, and
+  an SVG icon (`sizes: any`, `purpose: any maskable`) satisfies installability with no native
+  `sharp` dependency; the assets-generator stays the documented path for raster icons. (2)
+  `injectRegister: false` — the SW is registered manually in `app/pwa/register-pwa` so
+  `onNeedRefresh` can call `ui-store` directly. (3) `workbox-window` is pulled transitively by
+  `vite-plugin-pwa` rather than installed/imported directly.
 
-### Phase 7 — Docs
+### Phase 7 — Docs · ✅ DONE (2026-06-29)
 - README (run/scaffold/conventions), ADRs for the §1 decisions (incl. React Compiler,
   MSW-as-backend, direct-binding cross-store comms, auth-security defaults, and the
   installable-shell PWA), and a CONTRIBUTING note on the dependency-direction rule. Keep
   `AGENTS.md` in sync.
-- **Done when:** a new dev can clone, run, and scaffold a feature using only the docs.
+- **Done when:** a new dev can clone, run, and scaffold a feature using only the docs. — **done.**
+- **Outcome:** README rewritten from the Phase 0 stub into a complete guide (stack, quick start
+  with the seeded login accounts, every script, FSD structure, golden rules, scaffolding,
+  testing, PWA, and the MSW-only scope). `CONTRIBUTING.md` documents the dependency-direction
+  rule + the add-a-feature flow + the pre-commit gates. Seven ADRs in `docs/adr/` capture the key
+  decisions. `AGENTS.md` synced to the as-built state (status; compiler confirmed-on + the
+  DataGrid bail; import-boundary is a convention not a lint rule; domain generator emits a single
+  file; the feature route is a printed next-step, only handlers auto-wire).
+
+---
+
+## Build complete
+
+All seven phases are done and verified green. The branch `feat/phase-1-core-integrations` carries
+the full history; each increment passed typecheck + lint + format + build, with Vitest (5) and
+Playwright (2) green and the key flows verified live in-browser.
 
 ---
 
@@ -569,6 +677,14 @@ collected with `import.meta.glob`, so a new file is picked up with zero edits to
 - **MSW in two runtimes:** the Service Worker (`public/mockServiceWorker.js` via `msw init`)
   for the browser/dev + Playwright, and `setupServer` for Vitest — keep handlers shared so
   dev and tests can't drift.
+- **MSW + Vite HMR (dev-only):** editing an app-graph module can leave the worker without the
+  glob-registered handlers, so API calls 404 until a full reload re-runs `main.tsx`/`worker.start`.
+  Cosmetic in dev (reload fixes it); irrelevant in production (no HMR in `dist`). Observed in
+  Phase 2 acceptance — if it bites, hard-reload after edits to bindings/providers.
+- **App bootstrap must run after MSW (timing):** anything that calls the mock backend at startup
+  (e.g. the auth cold-start refresh) has to run *after* `enableMocking()` resolves, not at
+  module-eval. Phase 2 hit this — the refresh raced ahead of MSW and wiped sessions on reload;
+  fixed by triggering it from an `AppProviders` effect (render is gated on MSW readiness).
 - **MSW ↔ PWA service worker:** only one SW controls a scope — see §4.8. Decided: MSW in
   dev/test, Workbox SW in prod; `mockServiceWorker.js` excluded from the build; never two at `/`.
 - **PWA caching vs Query:** never let Workbox runtime-cache API responses — TanStack Query is
