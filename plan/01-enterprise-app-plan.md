@@ -524,13 +524,33 @@ collected with `import.meta.glob`, so a new file is picked up with zero edits to
   app-graph module (auth calls 404 until a full reload re-runs `main.tsx`). Not a production
   concern (no HMR in `dist`). See §9.
 
-### Phase 3 — DataGrid + example `users` feature
+### Phase 3 — DataGrid + example `users` feature · ✅ DONE (2026-06-29)
 - `DataGrid` (Table + Virtual); `users` slice: list (server-driven grid via MSW),
   create/edit (RHF + Zod dialog), delete, with Query invalidation; MSW `users` handlers + db.
 - **Done when:** users grid sorts/filters/paginates against MSW; create/edit/delete update
   the cache; virtualized rows scroll smoothly. **React Compiler stress-check here** (the real
   one): the render-heavy grid stays correct + the "Memo ✨" badge holds under scroll/sort; if
   the compiler misbehaves on this code, fall back to compiler-OFF (§4.7) before going further.
+  — **all verified green, live in-browser.**
+- **Outcome:** as admin — grid loads server-driven (203 rows, 9 pages); server-side filter
+  (`Turing` → 12, `Zzztest` → 1) and sort; pagination; create via the dialog
+  (`POST /users 201` → invalidate → refetch → the new row appears), with a real
+  `401 → refresh → 201` retry observed on an expired token; rows virtualized (23 DOM rows of a
+  25-row page). RBAC enforced **at the API**: viewer create → **403**; admin
+  create/update/delete → 201/200/204. Mutations invalidate `userKeys.all`.
+- **React Compiler stress-check — passed, no fallback needed:** the render-heavy `UsersPage`
+  is compiled (transformed module opens with `_c(53)`); the `DataGrid` correctly **bails**
+  (its `useReactTable` is "incompatible-library", surfaced by the react-hooks lint rule and
+  suppressed with an explanatory disable) — TanStack Table memoizes itself, the grid stays
+  correct under filter/sort/paginate/create, and the rest of the app stays optimized. The
+  compiler's *automatable* signal (`_c(n)` in the transformed output) replaces the manual
+  "Memo ✨ badge" check the plan sketched.
+- **Deviations (documented):** (1) the CRUD form edits a **single** primary `role`
+  (`userInputSchema`), stored as the `roles` array — keeps the dialog simple; multi-role is a
+  later enhancement. (2) Column **visibility** UI was not built — the DataGrid supports it at the
+  table level, but a toggle needs a Popover/DropdownMenu primitive; deferred. (3) Per-row action
+  buttons were replaced by **row-click-to-edit + checkbox bulk-delete**, which keeps the columns
+  module-level (stable identity, no table resets).
 
 ### Phase 4 — Scaffolder
 - Plop generators + templates for store/domain/query/feature/mock/component/route;
