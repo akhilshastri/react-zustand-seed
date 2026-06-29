@@ -27,6 +27,11 @@ export const RootLayout = () => {
               <Link to={paths.home} className="text-muted-foreground hover:text-foreground">
                 Home
               </Link>
+              <Can permission="users:read">
+                <Link to={paths.users} className="text-muted-foreground hover:text-foreground">
+                  Users
+                </Link>
+              </Can>
               <Can permission="users:delete">
                 <Link to="/admin" className="text-muted-foreground hover:text-foreground">
                   Admin

@@ -34,6 +34,16 @@ export const router = createBrowserRouter([
             lazy: async () => ({ Component: (await import('@/features/home')).HomePage }),
           },
           {
+            path: 'users',
+            element: <RequireRole permission="users:read" />,
+            children: [
+              {
+                index: true,
+                lazy: async () => ({ Component: (await import('@/features/users')).UsersPage }),
+              },
+            ],
+          },
+          {
             path: 'admin',
             element: <RequireRole permission="users:delete" />,
             children: [
