@@ -618,12 +618,27 @@ collected with `import.meta.glob`, so a new file is picked up with zero edits to
   `onNeedRefresh` can call `ui-store` directly. (3) `workbox-window` is pulled transitively by
   `vite-plugin-pwa` rather than installed/imported directly.
 
-### Phase 7 — Docs
+### Phase 7 — Docs · ✅ DONE (2026-06-29)
 - README (run/scaffold/conventions), ADRs for the §1 decisions (incl. React Compiler,
   MSW-as-backend, direct-binding cross-store comms, auth-security defaults, and the
   installable-shell PWA), and a CONTRIBUTING note on the dependency-direction rule. Keep
   `AGENTS.md` in sync.
-- **Done when:** a new dev can clone, run, and scaffold a feature using only the docs.
+- **Done when:** a new dev can clone, run, and scaffold a feature using only the docs. — **done.**
+- **Outcome:** README rewritten from the Phase 0 stub into a complete guide (stack, quick start
+  with the seeded login accounts, every script, FSD structure, golden rules, scaffolding,
+  testing, PWA, and the MSW-only scope). `CONTRIBUTING.md` documents the dependency-direction
+  rule + the add-a-feature flow + the pre-commit gates. Seven ADRs in `docs/adr/` capture the key
+  decisions. `AGENTS.md` synced to the as-built state (status; compiler confirmed-on + the
+  DataGrid bail; import-boundary is a convention not a lint rule; domain generator emits a single
+  file; the feature route is a printed next-step, only handlers auto-wire).
+
+---
+
+## Build complete
+
+All seven phases are done and verified green. The branch `feat/phase-1-core-integrations` carries
+the full history; each increment passed typecheck + lint + format + build, with Vitest (5) and
+Playwright (2) green and the key flows verified live in-browser.
 
 ---
 
