@@ -3,6 +3,7 @@ import { ErrorBoundary } from 'react-error-boundary'
 
 import { setupBindings } from '@/app/bindings'
 import { RootErrorFallback } from '@/app/error/root-error-fallback'
+import { PwaPrompts } from '@/app/pwa/pwa-prompts'
 import { bootstrapAuth } from '@/features/auth'
 
 import { QueryProvider } from './query-provider'
@@ -34,6 +35,7 @@ export const AppProviders = () => {
       <ThemeProvider>
         <QueryProvider>
           <RouterProvider />
+          <PwaPrompts />
         </QueryProvider>
       </ThemeProvider>
     </ErrorBoundary>

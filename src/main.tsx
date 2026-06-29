@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 
 import { App } from '@/app/app'
+import { registerPwa } from '@/app/pwa/register-pwa'
 import '@/styles/globals.css'
 
 const rootEl = document.getElementById('root')
@@ -27,4 +28,7 @@ enableMocking().then(() => {
       <App />
     </StrictMode>,
   )
+  // Register the Workbox SW (prod only; no-op in dev where MSW's SW runs instead). After render
+  // so it never competes with first paint.
+  registerPwa()
 })
