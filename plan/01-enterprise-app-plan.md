@@ -572,14 +572,25 @@ collected with `import.meta.glob`, so a new file is picked up with zero edits to
   handler genuinely auto-wires. The `domain` entity is a single `{{name}}.ts` (schema + type),
   matching the existing `user.ts`/`auth.ts` convention rather than the §5 types/schema split.
 
-### Phase 5 — Testing harness
+### Phase 5 — Testing harness · ✅ DONE (2026-06-29)
 - **Vitest + RTL** use MSW `setupServer` (Node — no service worker).
 - **Playwright drives a real browser, so it cannot use `setupServer`.** It runs against the
   **dev server (or a preview build with the MSW browser worker enabled)** — never against the
   shipped `dist` (which has no backend). Same shared handlers, different MSW entry point.
 - Smoke E2E: login → users grid.
 - **Done when:** `npm test` and `npm run e2e` pass on a fresh checkout; the E2E target's MSW
-  worker is explicitly the browser worker, not `setupServer`.
+  worker is explicitly the browser worker, not `setupServer`. — **both verified green.**
+- **Outcome:** `npm test` → **5 Vitest tests pass** (rbac unit; `useHealthQuery` integration
+  resolving against the MSW `setupServer`; `DemoForm` component via `userEvent` for Zod
+  validation + submit). `npm run e2e` → **2 Playwright tests pass** in headless Chromium against
+  the dev server's MSW **browser** worker (unauth → `/login`; admin login → dashboard → users
+  grid). `test-utils` renders with QueryClient + MemoryRouter; `setup.ts` runs the MSW lifecycle
+  + `resetDb` + RTL cleanup between tests.
+- **Deviations (documented):** (1) `vitest.config.ts` is **separate** from `vite.config.ts` so
+  tests skip the React Compiler babel pass (a prod optimization, irrelevant to behaviour) and
+  Tailwind, with an explicit `@` alias (not Vite's `tsconfigPaths`, for resolution certainty
+  under Vitest). (2) Vitest uses **explicit imports** (`import { describe, … } from 'vitest'`,
+  `globals: false`) to keep test globals out of the app `tsconfig`.
 
 ### Phase 6 — PWA (installable shell)
 - `vite-plugin-pwa` manifest + icons (`@vite-pwa/assets-generator`); Workbox app-shell
