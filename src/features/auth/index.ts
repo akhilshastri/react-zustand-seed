@@ -1,5 +1,7 @@
 export * from './api/refresh'
 export * from './api/use-login'
 export * from './api/use-logout'
+export * from './components/can'
 export * from './hooks/use-auth'
+export * from './hooks/use-permissions'
 export * from './store/auth-store'

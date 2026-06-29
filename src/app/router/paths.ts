@@ -5,7 +5,8 @@
  */
 export const paths = {
   home: '/',
-  // login: '/login' — added in Phase 2 with the auth feature + route guards.
+  login: '/login',
+  users: '/users',
 } as const
 
 export type AppPath = (typeof paths)[keyof typeof paths]
