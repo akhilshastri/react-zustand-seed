@@ -1,6 +1,6 @@
 import { isRouteErrorResponse, Link, useRouteError } from 'react-router'
 
-import { paths } from '@/app/router/paths'
+import { paths } from '@/shared/config/paths'
 import { Button } from '@/shared/ui/button'
 
 const describe = (error: unknown): { status: string; message: string } => {

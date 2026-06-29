@@ -1,10 +1,9 @@
 import { type ReactNode } from 'react'
-import { Navigate, Outlet } from 'react-router'
+import { Navigate, Outlet, useLocation } from 'react-router'
 
 import { type Permission } from '@/domain/rbac'
 import { useAuth, usePermissions } from '@/features/auth'
-
-import { paths } from './paths'
+import { paths } from '@/shared/config/paths'
 
 const FullScreenLoader = () => (
   <div className="text-muted-foreground grid min-h-dvh place-items-center text-sm">Loading…</div>
@@ -16,8 +15,11 @@ const FullScreenLoader = () => (
  */
 export const ProtectedRoute = () => {
   const { isAuthenticated, isPending } = useAuth()
+  const location = useLocation()
   if (isPending) return <FullScreenLoader />
-  if (!isAuthenticated) return <Navigate to={paths.login} replace />
+  if (!isAuthenticated) {
+    return <Navigate to={paths.login} replace state={{ from: location.pathname }} />
+  }
   return <Outlet />
 }
 

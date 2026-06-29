@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
 
-import { paths } from '@/app/router/paths'
+import { paths } from '@/shared/config/paths'
 import { Button } from '@/shared/ui/button'
 
 /** Catch-all 404 page rendered by the `*` route (plan §4.3). */
