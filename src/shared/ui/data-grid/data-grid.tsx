@@ -33,6 +33,7 @@ interface DataGridProps<TData> {
   onRowSelectionChange?: OnChangeFn<RowSelectionState>
   enableRowSelection?: boolean
   getRowId?: (row: TData) => string
+  onRowClick?: (row: TData) => void
   isLoading?: boolean
   searchPlaceholder?: string
   emptyMessage?: string
@@ -61,6 +62,7 @@ export const DataGrid = <TData,>({
   onRowSelectionChange,
   enableRowSelection = false,
   getRowId,
+  onRowClick,
   isLoading = false,
   searchPlaceholder = 'Search…',
   emptyMessage = 'No results.',
@@ -180,9 +182,11 @@ export const DataGrid = <TData,>({
                       key={row.id}
                       data-index={virtualRow.index}
                       ref={virtualizer.measureElement}
+                      onClick={onRowClick ? () => onRowClick(row.original) : undefined}
                       className={cn(
                         'hover:bg-muted/50 grid items-center border-b',
                         row.getIsSelected() && 'bg-muted/50',
+                        onRowClick && 'cursor-pointer',
                       )}
                       style={{
                         gridTemplateColumns,
