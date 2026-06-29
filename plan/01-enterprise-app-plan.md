@@ -501,11 +501,28 @@ collected with `import.meta.glob`, so a new file is picked up with zero edits to
   `online/offline → ui-store`. (2) devtools are lazy + DEV-gated (kept out of the prod bundle).
   (3) jsx-a11y + the §3 import-boundary lint rule remain deferred (carried over from Phase 0).
 
-### Phase 2 — Enterprise cross-cutting
+### Phase 2 — Enterprise cross-cutting · ✅ DONE (2026-06-29)
 - Auth feature (JWT store, login, refresh, guards, 401 handling) with MSW auth handlers;
   RBAC (`domain/rbac`, `usePermissions`, `<Can>`, `<RequireRole>`); theming/dark-mode toggle.
 - **Done when:** unauthenticated users are redirected to login; access/refresh token flow
   works against MSW; role-gated route + UI hide correctly; theme persists across reload.
+  — **all verified green, live in-browser.**
+- **Outcome:** verified for both roles — unauth `/` → `/login`; viewer & admin login
+  (`POST /auth/login 200`); **session restores on reload** (`POST /auth/refresh 200`); viewer
+  is bounced from `/admin` and sees no admin panel/link while admin gets both; logout clears the
+  query cache + redirects; theme persists. The httpOnly refresh token is invisible to
+  `document.cookie` (P2.2 probe). Access token in memory only; refresh as httpOnly cookie;
+  single-flight 401 refresh; MSW enforces 401/403 (client RBAC is UX-only).
+- **Bug found + fixed during acceptance:** `bootstrapAuth` ran at module-eval (when
+  `app-providers` is imported), which is *before* `main.tsx` starts MSW — so the cold-start
+  refresh raced ahead of the mock backend, failed, and cleared **every** session on reload. Moved
+  the bootstrap to an `AppProviders` effect (render is gated on MSW readiness), guarded once.
+- **Deviation (documented):** `app/bindings.ts` uses the base `store.subscribe((state, prev))`
+  form, not the selector form sketched in §4.9 — identical behavior without adding the
+  `subscribeWithSelector` middleware to the store factory. All §4.9 discipline preserved.
+- **Dev-only note:** MSW + Vite HMR can drop the glob-registered handlers after editing an
+  app-graph module (auth calls 404 until a full reload re-runs `main.tsx`). Not a production
+  concern (no HMR in `dist`). See §9.
 
 ### Phase 3 — DataGrid + example `users` feature
 - `DataGrid` (Table + Virtual); `users` slice: list (server-driven grid via MSW),
@@ -583,6 +600,14 @@ collected with `import.meta.glob`, so a new file is picked up with zero edits to
 - **MSW in two runtimes:** the Service Worker (`public/mockServiceWorker.js` via `msw init`)
   for the browser/dev + Playwright, and `setupServer` for Vitest — keep handlers shared so
   dev and tests can't drift.
+- **MSW + Vite HMR (dev-only):** editing an app-graph module can leave the worker without the
+  glob-registered handlers, so API calls 404 until a full reload re-runs `main.tsx`/`worker.start`.
+  Cosmetic in dev (reload fixes it); irrelevant in production (no HMR in `dist`). Observed in
+  Phase 2 acceptance — if it bites, hard-reload after edits to bindings/providers.
+- **App bootstrap must run after MSW (timing):** anything that calls the mock backend at startup
+  (e.g. the auth cold-start refresh) has to run *after* `enableMocking()` resolves, not at
+  module-eval. Phase 2 hit this — the refresh raced ahead of MSW and wiped sessions on reload;
+  fixed by triggering it from an `AppProviders` effect (render is gated on MSW readiness).
 - **MSW ↔ PWA service worker:** only one SW controls a scope — see §4.8. Decided: MSW in
   dev/test, Workbox SW in prod; `mockServiceWorker.js` excluded from the build; never two at `/`.
 - **PWA caching vs Query:** never let Workbox runtime-cache API responses — TanStack Query is
