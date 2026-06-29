@@ -592,14 +592,31 @@ collected with `import.meta.glob`, so a new file is picked up with zero edits to
   under Vitest). (2) Vitest uses **explicit imports** (`import { describe, … } from 'vitest'`,
   `globals: false`) to keep test globals out of the app `tsconfig`.
 
-### Phase 6 — PWA (installable shell)
+### Phase 6 — PWA (installable shell) · ✅ DONE (2026-06-29)
 - `vite-plugin-pwa` manifest + icons (`@vite-pwa/assets-generator`); Workbox app-shell
   precache; `registerSW` update flow → `ui-store.showUpdateToast()` (direct, no bus); offline
   banner via `online/offline` → `ui-store`; exclude `mockServiceWorker.js` from the build
   (§4.8 SW split).
 - **Done when:** a production `npm run build` + `npm run preview` is installable and loads the
   **app shell** offline, and shows the update toast when a new build is served. (No offline-data
-  claim — data needs a real API.)
+  claim — data needs a real API.) — **verified green.**
+- **Outcome:** `npm run build` emits `manifest.webmanifest` (standalone, theme color, icons) +
+  `sw.js` + the Workbox runtime, and the build plugin **removes `mockServiceWorker.js` from
+  `dist`** (only the Workbox SW ships). In `npm run preview` (in-browser): the SW registers and,
+  after a navigation, **controls** the page; the Workbox precache holds the **full app shell** —
+  `index.html` + every JS chunk + CSS + icons + manifest (11 entries), and **not** the MSW
+  worker — so the shell loads offline; the page is installable (manifest + SW + icons). `/api` is
+  **not** runtime-cached (TanStack Query owns server state); `navigateFallback` serves the cached
+  shell for offline navigations. The update toast / offline banner are `ui-store`-driven from
+  `app/pwa/` (no bus); the update flow is wired (onNeedRefresh → `showUpdateToast`) and fires when
+  a second build is served.
+- **Deviations (documented):** (1) a **hand-authored SVG** manifest icon instead of
+  `@vite-pwa/assets-generator` raster output — binary PNGs can't be authored in this workflow, and
+  an SVG icon (`sizes: any`, `purpose: any maskable`) satisfies installability with no native
+  `sharp` dependency; the assets-generator stays the documented path for raster icons. (2)
+  `injectRegister: false` — the SW is registered manually in `app/pwa/register-pwa` so
+  `onNeedRefresh` can call `ui-store` directly. (3) `workbox-window` is pulled transitively by
+  `vite-plugin-pwa` rather than installed/imported directly.
 
 ### Phase 7 — Docs
 - README (run/scaffold/conventions), ADRs for the §1 decisions (incl. React Compiler,
