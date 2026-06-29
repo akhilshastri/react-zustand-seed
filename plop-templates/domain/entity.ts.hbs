@@ -1,0 +1,8 @@
+import { z } from 'zod'
+
+export const {{camelCase name}}Schema = z.object({
+  id: z.string(),
+  name: z.string().min(1),
+})
+
+export type {{pascalCase name}} = z.infer<typeof {{camelCase name}}Schema>

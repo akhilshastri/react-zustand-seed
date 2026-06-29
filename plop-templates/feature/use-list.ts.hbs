@@ -1,0 +1,13 @@
+import { useQuery } from '@tanstack/react-query'
+
+import { http } from '@/shared/api'
+
+import type { {{pascalCase name}} } from '../types/{{kebabCase name}}.types'
+import { {{camelCase name}}Keys } from './{{kebabCase name}}-keys'
+
+/** Sample list query — resolves against the generated MSW handler at `/api/{{kebabCase name}}`. */
+export const use{{pascalCase name}}List = () =>
+  useQuery({
+    queryKey: {{camelCase name}}Keys.lists(),
+    queryFn: () => http.get<{{pascalCase name}}[]>('/{{kebabCase name}}'),
+  })

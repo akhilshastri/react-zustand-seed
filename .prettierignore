@@ -14,3 +14,6 @@ public/mockServiceWorker.js
 
 # Planning docs: hand-formatted reference material, not app code
 plan
+
+# Scaffolder templates: handlebars-in-TS, not parseable as app code
+plop-templates

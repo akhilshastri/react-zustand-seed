@@ -1,0 +1,9 @@
+import { http, HttpResponse } from 'msw'
+
+// Auto-registered by handlers/index.ts (import.meta.glob) — no edits to a shared file (plan §5).
+const {{camelCase name}}s = [
+  { id: '1', name: 'First item' },
+  { id: '2', name: 'Second item' },
+]
+
+export default [http.get('/api/{{kebabCase name}}', () => HttpResponse.json({{camelCase name}}s))]
