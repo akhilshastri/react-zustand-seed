@@ -14,3 +14,15 @@ export const userSchema = z.object({
 })
 
 export type User = z.infer<typeof userSchema>
+
+/**
+ * Create/edit form input — validates the form (RHF) and the request body (plan §4.4). A single
+ * primary `role` keeps the form simple; the backend stores it as the `roles` array.
+ */
+export const userInputSchema = z.object({
+  name: z.string().min(2, 'At least 2 characters'),
+  email: z.email('Enter a valid email'),
+  role: roleSchema,
+})
+
+export type UserInput = z.infer<typeof userInputSchema>
