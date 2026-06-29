@@ -1,0 +1,32 @@
+# GitHub Copilot coding agent — environment setup.
+#
+# This is NOT a CI pipeline. The job below only prepares the Copilot coding agent's ephemeral
+# environment so it can run `npm run typecheck | lint | test | build | e2e`. It is triggered by
+# the Copilot agent (and `workflow_dispatch`), NOT on push/PR — so it does not gate commits. The
+# seed ships no CI by design; delete this file if you don't use the Copilot coding agent.
+#
+# The job MUST be named `copilot-setup-steps` for GitHub Copilot to discover it.
+name: Copilot Setup Steps
+
+on:
+  workflow_dispatch:
+
+jobs:
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Needed only for `npm run e2e`. Drop this step if the agent won't run Playwright.
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
