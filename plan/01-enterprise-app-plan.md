@@ -329,9 +329,11 @@ plugins: [
 **Footgun — plugin ordering:** the referenced blog
 ([recca0120](https://recca0120.github.io/en/2026/04/14/react-compiler-vite-v6/)) puts
 `babel()` **before** `react()`; the official react.dev guide shows `react()` first. They
-disagree. **Resolution:** we will not guess — Phase 1 tries both orderings and adopts whichever
-makes *both* Fast Refresh (HMR preserves state) *and* the compiler (React DevTools "Memo ✨"
-badge) work.
+disagree. **Resolution (settled in Phase 1):** **`react()` first, then the babel/compiler pass**
+(`plugins: [react(), babel({ presets: [reactCompilerPreset()] }), tailwindcss()]`) — the
+react.dev order, not the blog's babel-first. Verified: the transformed output imports
+`react/compiler-runtime` and components open with `_c(n)` (memo cache), while Fast Refresh
+(`createHotContext`) still works. We did not need the escape hatch below.
 
 **Fallback — the compiler is optional, the app is not.** This is a five-deep bleeding-edge
 toolchain (Vite 8 / plugin-react v6 / `@rolldown/plugin-babel@0.2.3` (pre-1.0) /
@@ -475,7 +477,7 @@ collected with `import.meta.glob`, so a new file is picked up with zero edits to
   (2) `eslint-plugin-jsx-a11y` deferred to Phase 1 (no ESLint 10 support yet);
   (3) the §3 import-boundary lint rule deferred to Phase 1 (no features to guard yet).
 
-### Phase 1 — Core integrations + React Compiler
+### Phase 1 — Core integrations + React Compiler · ✅ DONE (2026-06-29)
 - React Compiler wiring (§4.7) + ESLint compiler rules; QueryClient + provider + devtools;
   `http-client`; Zustand `create-store` + `ui-store` + `theme-store`; **`app/bindings.ts`**
   (`store.subscribe`) with the `logged-out → queryClient.clear() + ui-store.reset()` reaction;
@@ -485,7 +487,19 @@ collected with `import.meta.glob`, so a new file is picked up with zero edits to
   sample query resolves against MSW; **and the React Compiler toolchain links** — HMR preserves
   state *and* the React DevTools "Memo ✨" badge appears (settles §4.7 ordering). **If neither
   ordering links / HMR is unusable → take the §4.7 escape hatch (compiler OFF) and proceed;
-  do not stall the phase.** (Deep compiler validation is Phase 3, not here.)
+  do not stall the phase.** (Deep compiler validation is Phase 3, not here.) — **all verified green.**
+- **Outcome:** acceptance met live in-browser — home + 404 routes render in the themed shell
+  (dark via system pref); the demo query resolves against MSW (`GET /api/health` → `200 ok`);
+  the demo form shows Zod errors on invalid input and submits on valid; no console errors.
+  **Compiler confirmed active** — the transformed `HomePage` imports `react/compiler-runtime`
+  and opens with `const $ = _c(11)` (memo cache), with Fast Refresh (`createHotContext`)
+  coexisting; the escape hatch was **not** needed. **§4.7 ordering settled: `react()` first,
+  then the babel/compiler pass** (the official react.dev order, not the blog's babel-first).
+- **Deviations (documented):** (1) the `logged-out → queryClient.clear() + ui-store.reset()`
+  reaction is **scaffolded as a documented extension point** in `app/bindings.ts`, not live —
+  it depends on `auth-store`, which lands in Phase 2; the live binding shipped now is
+  `online/offline → ui-store`. (2) devtools are lazy + DEV-gated (kept out of the prod bundle).
+  (3) jsx-a11y + the §3 import-boundary lint rule remain deferred (carried over from Phase 0).
 
 ### Phase 2 — Enterprise cross-cutting
 - Auth feature (JWT store, login, refresh, guards, 401 handling) with MSW auth handlers;
