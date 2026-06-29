@@ -1,6 +1,7 @@
 import { env } from '@/shared/config/env'
 
 import { ApiError } from './api-error'
+import { runRefresh } from './auth-refresh'
 import { getAccessToken } from './auth-token'
 
 export interface RequestOptions extends Omit<RequestInit, 'body'> {
@@ -8,6 +9,8 @@ export interface RequestOptions extends Omit<RequestInit, 'body'> {
   body?: unknown
   /** Override the base URL (defaults to `env.VITE_API_BASE_URL`). */
   baseUrl?: string
+  /** Skip the 401 → refresh → retry flow (set by the refresh call itself to avoid recursion). */
+  skipAuthRefresh?: boolean
 }
 
 const buildUrl = (path: string, baseUrl: string): string => {
@@ -25,11 +28,11 @@ const parseBody = async (res: Response): Promise<unknown> => {
  * Typed `fetch` wrapper. Injects the in-memory access token, sends cookies (so MSW receives
  * the httpOnly refresh cookie), parses JSON, and throws `ApiError` on any non-2xx response.
  *
- * NOTE: single-flight 401 → refresh → retry is wired in Phase 2 with the auth feature
- * (plan §4.6). Phase 1 simply surfaces the 401 as an `ApiError`.
+ * On a 401 it runs a single-flight refresh (plan §4.6); if the token is renewed it retries the
+ * request once with `skipAuthRefresh` so a second 401 can't loop.
  */
 export const request = async <T>(path: string, options: RequestOptions = {}): Promise<T> => {
-  const { body, baseUrl = env.VITE_API_BASE_URL, headers, ...init } = options
+  const { body, baseUrl = env.VITE_API_BASE_URL, headers, skipAuthRefresh, ...init } = options
   const token = getAccessToken()
 
   const res = await fetch(buildUrl(path, baseUrl), {
@@ -42,6 +45,11 @@ export const request = async <T>(path: string, options: RequestOptions = {}): Pr
     },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
+
+  if (res.status === 401 && !skipAuthRefresh) {
+    const refreshed = await runRefresh()
+    if (refreshed) return request<T>(path, { ...options, skipAuthRefresh: true })
+  }
 
   const data = await parseBody(res)
 
