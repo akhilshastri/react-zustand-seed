@@ -19,6 +19,9 @@
     "test:watch": "vitest",
     "e2e": "playwright test",
     "gen": "plop",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
     "prepare": "husky"
   },
   "dependencies": {
@@ -79,6 +82,7 @@
     "typescript-eslint": "^8.62.0",
     "vite": "^8.1.0",
     "vite-plugin-pwa": "^1.3.0",
+    "vitepress": "^1.6.4",
     "vitest": "^4.1.9"
   },
   "lint-staged": {
