@@ -32,6 +32,10 @@ jobs:
           node-version: 20
           cache: npm
       - uses: actions/configure-pages@v5
+        with:
+          # Enable Pages (with the GitHub Actions source) on first run, so no manual
+          # Settings → Pages toggle is required.
+          enablement: true
       - run: npm ci
       - run: npm run docs:build
       - uses: actions/upload-pages-artifact@v3
