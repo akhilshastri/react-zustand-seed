@@ -79,9 +79,8 @@ unmount), keep it in that component with `useEffect`. `bindings.ts` is only for 
 cross-store** reactions that outlive any component.
 
 > **Rules in play:** cross-store reactions live **only** in `app/bindings.ts`, via `store.subscribe`
->
-> - direct calls — no event bus, no store-to-store imports, no ad-hoc `subscribe` in components.
->   (See [ADR-0004](../adr/0004-cross-store-direct-bindings.md) and [`AGENTS.md`](../../AGENTS.md) §2.)
+> and direct calls — no event bus, no store-to-store imports, no ad-hoc `subscribe` in components.
+> (See [ADR-0004](../adr/0004-cross-store-direct-bindings.md) and [`AGENTS.md`](../../AGENTS.md) §2.)
 
 ---
 
