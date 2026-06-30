@@ -10,6 +10,10 @@ PWA shell, a Plop scaffolder, and Vitest + Playwright tests — all wired and wo
 > needs a real API to show data; it ships as an installable app shell only. This is intentional —
 > see [ADR-0002](docs/adr/0002-msw-as-the-backend.md).
 
+📚 **How-To guides** — a step-by-step series from your first generated component to advanced
+routing — are published at **<https://akhilshastri.github.io/react-zustand-seed/>**
+(source in [`docs/how-to/`](docs/how-to/)).
+
 Build rationale and the phased history live in
 [`plan/01-enterprise-app-plan.md`](plan/01-enterprise-app-plan.md). The day-to-day operating
 rules are in [`AGENTS.md`](AGENTS.md). Key decisions are recorded as [ADRs](docs/adr/).
