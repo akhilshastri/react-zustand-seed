@@ -125,8 +125,12 @@ src/test/       Vitest setup + provider-aware render()
 - Mirror server state into Zustand · import one store/feature from another directly · add an
   event bus or wire cross-store reactions outside `app/bindings.ts` · add manual memoization ·
   use `react-router-dom` · SW-cache API calls · put tokens in localStorage · hand-create slices
-  instead of scaffolding · introduce a real backend (this seed is MSW-only) · add CI/deploy
+  instead of scaffolding · introduce a real backend (this seed is MSW-only) · add app CI/deploy
   config (out of scope) · add Storybook (excluded).
+
+> **Exception (docs only):** `.github/workflows/deploy-docs.yml` builds the VitePress how-to site
+> in `docs/` and publishes it to GitHub Pages (`npm run docs:build`). This is a documentation
+> pipeline, not application CI/CD — the "no CI/deploy" rule still holds for the app itself.
 
 ---
 
