@@ -10,8 +10,9 @@ It is an installable **PWA** (app-shell) and keeps cross-store communication exp
 **scaffolder** (Plop) for domain types, features, and mock handlers.
 
 API is **REST, mocked entirely with MSW** (no real backend). Auth is **custom JWT**.
-Single app, **no CI**, **no deployment** — `npm run build` just produces `dist/`.
-**No Storybook.**
+Single app, **no app CI/deployment** — `npm run build` just produces `dist/`. (The one exception,
+added post-build: a docs-only workflow publishes the **how-to documentation site** to GitHub
+Pages — see Phase 8.) **No Storybook.**
 
 ---
 
@@ -31,7 +32,7 @@ Single app, **no CI**, **no deployment** — `npm run build` just produces `dist
 | API | **REST, MSW-mocked only** — no real backend; MSW serves dev *and* tests |
 | Validation | **Zod v4**, schemas live in `domain/` and are reused by RHF + API parsing |
 | Scaffolder | **Plop** generators (`npm run gen`) |
-| CI / Deploy | **None.** Build produces `dist/` only. |
+| CI / Deploy | **None for the app** — build produces `dist/` only. **Exception:** a docs-only GitHub Actions workflow publishes the how-to site to GitHub Pages (Phase 8). |
 | Storybook | **Excluded.** |
 
 ### Golden rule of state
@@ -104,6 +105,11 @@ Single app, **no CI**, **no deployment** — `npm run build` just produces `dist
 > **"TanStack Grid" clarification:** there is no product by that name. The TanStack data
 > grid is **TanStack Table v8** (headless) + **TanStack Virtual v3** (virtualization),
 > wrapped here as a single reusable `DataGrid` component.
+
+### Docs site (added post-build, 2026-06-30)
+| Package | Version | Purpose |
+|---------|---------|---------|
+| vitepress | 1.6.4 | Static-site generator for the `docs/how-to/` series, published to GitHub Pages (Phase 8) |
 
 ---
 
@@ -455,11 +461,13 @@ collected with `import.meta.glob`, so a new file is picked up with zero edits to
   renders with all providers; MSW is the shared mock backend.
 - **Env:** `shared/config/env.ts` Zod-parses `import.meta.env` and fails fast on misconfig;
   `.env.example` documents required vars.
-- **No CI pipeline** and **no deploy step** — quality gates run locally via the scripts above.
+- **No CI pipeline / deploy step for the app** — quality gates run locally via the scripts above.
+  (The how-to docs site adds one docs-only GitHub Actions → Pages workflow; see Phase 8.)
 
 ### npm scripts (planned)
 `dev` · `build` (→ `dist/`) · `preview` · `lint` · `format` · `typecheck` ·
-`test` · `test:watch` · `e2e` · `gen` · `prepare` (husky) · `msw:init`.
+`test` · `test:watch` · `e2e` · `gen` · `prepare` (husky) · `msw:init` ·
+**`docs:dev` · `docs:build` · `docs:preview`** (Phase 8 — VitePress docs site).
 
 ---
 
@@ -640,6 +648,44 @@ All seven phases are done and verified green. The branch `feat/phase-1-core-inte
 the full history; each increment passed typecheck + lint + format + build, with Vitest (5) and
 Playwright (2) green and the key flows verified live in-browser.
 
+A later **Phase 8** (2026-06-30) — the how-to documentation site and its GitHub Pages publishing
+pipeline — was added on top; see below.
+
+---
+
+## Phase 8 — Documentation site & GitHub Pages publishing · ✅ DONE (2026-06-30, post-build)
+
+A "how-to" guide series for **users** of the seed, plus a published docs site — added after the
+original seven-phase build. **This is the one place the "no deploy" rule (§1, §8) is carved out:**
+a docs-only pipeline, not application CI/CD.
+
+- **How-to series (`docs/how-to/`):** 16 guides, basic → advanced, threading an `invoices`/
+  `invoice` running example — 00 get started · 01 generate a feature · 02 customize the page ·
+  03 domain entity · 04 wire routing · 05 mock the backend · 06 client state (Zustand) ·
+  07 server state (Query) · 08 forms (RHF + Zod) · 09 the DataGrid · 10 auth & RBAC ·
+  11 cross-store reactions · 12 advanced routing · 13 theming & PWA · 14 testing · 15 real
+  backend. Each is grounded in the real source and links the governing ADR/AGENTS rule.
+- **Publishing (VitePress → GitHub Pages):** `docs/.vitepress/config.mts` (sidebar, local search,
+  README→index rewrites, dead-link checking), `docs/index.md` home, `docs:dev|build|preview`
+  scripts, and a docs-only workflow `.github/workflows/deploy-docs.yml` (build on Node 20, deploy
+  via `actions/deploy-pages`). `AGENTS.md` carries a matching carve-out; the root `README.md`
+  links the site.
+- **Done when:** a push to `main` touching `docs/**` builds and publishes the site, and the public
+  URL serves the guides. — **verified green.**
+- **Outcome:** live at **https://akhilshastri.github.io/react-zustand-seed/** (home + every how-to
+  page return HTTP 200). VitePress build is clean (dead-link checking on; repo-root links ignored).
+- **Issues found + fixed during bring-up:** (1) Pages defaulted to "deploy from a branch" → set
+  Source = **GitHub Actions** (the workflow also sets `configure-pages` `enablement: true` as a
+  backstop). (2) `npm ci` failed on the Linux runner because the Windows-generated
+  `package-lock.json` was incomplete (npm optional-deps bug after adding VitePress) → regenerated
+  the lockfile, and the deploy step falls back to `npm install` so a lockfile/platform edge case
+  can't block publishing.
+- **Deviations (documented):** (1) adds a single **docs-only** GitHub Actions workflow — the app
+  itself still has **no CI/deploy** (§1/§8 reconciled with this carve-out). (2) the `npm install`
+  fallback trades strict `npm ci` reproducibility for resilience, acceptable for a docs site.
+  (3) the React Compiler Babel pass / app build are untouched — VitePress builds the `docs/` tree
+  with its own Vite pipeline.
+
 ---
 
 ## 8. Resolved decisions (your answers)
@@ -649,8 +695,10 @@ Playwright (2) green and the key flows verified live in-browser.
 2. **Auth:** **custom JWT** — access token in **memory**, refresh token as an **httpOnly
    cookie** (MSW-simulated), single-flight refresh on 401. (No external IdP.) See §4.6.
 3. **Scope:** **single app** — no monorepo/workspaces.
-4. **CI:** **none** — quality gates are local (husky/lint-staged) only.
-5. **Deploy:** **none** — `npm run build` produces `dist/`; nothing is published or hosted.
+4. **CI:** **none for the app** — quality gates are local (husky/lint-staged) only. *(Post-build:
+   a docs-only GitHub Actions workflow builds the how-to site — Phase 8.)*
+5. **Deploy:** **none for the app** — `npm run build` produces `dist/`; nothing is published or
+   hosted. *(Post-build exception: the how-to docs site is published to GitHub Pages — Phase 8.)*
 6. **Storybook:** **excluded.**
 
 ### Remaining assumptions (flag if wrong)
