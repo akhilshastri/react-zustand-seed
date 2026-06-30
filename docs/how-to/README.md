@@ -22,21 +22,25 @@ These guides show you _how_ to use the seed. The _why_ behind each rule lives in
 | 04  | [Wire Routing](./04-wire-routing.md)                     | Make the feature reachable with a typed, code-split route. |
 | 05  | [Mock the Backend](./05-mock-the-backend.md)             | Shape realistic mock data and enforce authorization.       |
 
-## Tier 2 — Core patterns (in progress)
+## Tier 2 — Core patterns: state, data, forms, grids
 
-- 06 — Client State with Zustand
-- 07 — Server State with TanStack Query
-- 08 — Forms with React Hook Form + Zod
-- 09 — The DataGrid (TanStack Table + Virtual)
+| #   | Guide                                                          | You'll be able to…                                        |
+| --- | -------------------------------------------------------------- | --------------------------------------------------------- |
+| 06  | [Client State with Zustand](./06-client-state-zustand.md)      | Build UI stores with the factory, selectors, persistence. |
+| 07  | [Server State with TanStack Query](./07-server-state-query.md) | Fetch, cache, mutate, and invalidate server data.         |
+| 08  | [Forms with RHF + Zod](./08-forms-rhf-zod.md)                  | Validate forms with a domain schema the API reuses.       |
+| 09  | [The DataGrid](./09-data-grid.md)                              | Render a server-driven, virtualized table.                |
 
-## Tier 3 — Advanced (in progress)
+## Tier 3 — Advanced: auth, reactions, routing, ship
 
-- 10 — Auth & RBAC: protect routes, gate UI
-- 11 — Cross-Store Reactions (`app/bindings.ts`)
-- 12 — Advanced Routing
-- 13 — Theming & the PWA Shell
-- 14 — Testing Your Feature
-- 15 — Connect a Real Backend
+| #   | Guide                                                    | You'll be able to…                                       |
+| --- | -------------------------------------------------------- | -------------------------------------------------------- |
+| 10  | [Auth & RBAC](./10-auth-and-rbac.md)                     | Protect routes and gate UI by role.                      |
+| 11  | [Cross-Store Reactions](./11-cross-store-reactions.md)   | Wire app-wide reactions in `app/bindings.ts`.            |
+| 12  | [Advanced Routing](./12-advanced-routing.md)             | Nest layouts, code-split, gate, and parameterize routes. |
+| 13  | [Theming & the PWA Shell](./13-theming-and-pwa.md)       | Drive theming and the installable PWA from stores.       |
+| 14  | [Testing Your Feature](./14-testing-your-feature.md)     | Test with Vitest + RTL + MSW and Playwright.             |
+| 15  | [Connect a Real Backend](./15-connect-a-real-backend.md) | Swap MSW for a live API.                                 |
 
 ---
 

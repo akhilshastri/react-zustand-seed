@@ -41,6 +41,26 @@ export default defineConfig({
             { text: '05 — Mock the Backend', link: '/how-to/05-mock-the-backend' },
           ],
         },
+        {
+          text: 'Tier 2 — Core patterns',
+          items: [
+            { text: '06 — Client State (Zustand)', link: '/how-to/06-client-state-zustand' },
+            { text: '07 — Server State (Query)', link: '/how-to/07-server-state-query' },
+            { text: '08 — Forms (RHF + Zod)', link: '/how-to/08-forms-rhf-zod' },
+            { text: '09 — The DataGrid', link: '/how-to/09-data-grid' },
+          ],
+        },
+        {
+          text: 'Tier 3 — Advanced',
+          items: [
+            { text: '10 — Auth & RBAC', link: '/how-to/10-auth-and-rbac' },
+            { text: '11 — Cross-Store Reactions', link: '/how-to/11-cross-store-reactions' },
+            { text: '12 — Advanced Routing', link: '/how-to/12-advanced-routing' },
+            { text: '13 — Theming & PWA', link: '/how-to/13-theming-and-pwa' },
+            { text: '14 — Testing', link: '/how-to/14-testing-your-feature' },
+            { text: '15 — Real Backend', link: '/how-to/15-connect-a-real-backend' },
+          ],
+        },
       ],
     },
 
