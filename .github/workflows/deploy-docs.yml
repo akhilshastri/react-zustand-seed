@@ -36,7 +36,9 @@ jobs:
           # Enable Pages (with the GitHub Actions source) on first run, so no manual
           # Settings → Pages toggle is required.
           enablement: true
-      - run: npm ci
+      # Docs-only deploy: prefer the strict, reproducible npm ci, but fall back to npm install so
+      # a lockfile/platform edge case on the Linux runner can't block publishing the site.
+      - run: npm ci --no-audit --no-fund || npm install --no-audit --no-fund
       - run: npm run docs:build
       - uses: actions/upload-pages-artifact@v3
         with:
